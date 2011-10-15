@@ -1,7 +1,6 @@
 
 package MyBed;
 
-import com.nijiko.permissions.PermissionHandler;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -19,6 +18,7 @@ import org.bukkit.event.Event.Priority;
 import org.bukkit.event.Event.Type;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import ru.tehkode.permissions.PermissionManager;
 
 /**
  *
@@ -26,7 +26,7 @@ import org.bukkit.plugin.java.JavaPlugin;
  */
 public class MyBed extends JavaPlugin {
     protected static Server server;
-    protected static PermissionHandler permissions;
+    protected static PermissionManager permissions;
     protected static PluginManager pm;
     private Properties p;
 
@@ -37,27 +37,20 @@ public class MyBed extends JavaPlugin {
     @Override
     public void onEnable() {
         server = getServer();
+        pm = server.getPluginManager();
         checkFiles();
         SaveSystem.load();
         loadConfig();
-        pm = server.getPluginManager();
-        MyBedBlockListener blockListener = new MyBedBlockListener();
-        pm.registerEvent(Event.Type.PLUGIN_ENABLE, new PluginListener(), Priority.Monitor, this);
-        pm.registerEvent(Type.PLAYER_BED_ENTER, new MyBedPlayerListener(), Priority.Normal, this);
-        pm.registerEvent(Type.BLOCK_BREAK, blockListener, Priority.Normal, this);
-        pm.registerEvent(Type.SIGN_CHANGE, blockListener, Priority.Normal, this);
+        registerEvents();
         System.out.println("MyBed "+this.getDescription().getVersion()+" is enabled!");
     }
 
     /**
      * Makes sure all needed files exist
-     * Register.jar is for economy support
+     *
      */
     private void checkFiles() {
-        File file = new File("lib/Register.jar");
-        if (!file.exists() || file.length() < 43000)
-            moveFile("Register.jar");
-        file = new File("plugins/MyBed/config.properties");
+        File file = new File("plugins/MyBed/config.properties");
         if (!file.exists())
             moveFile("config.properties");
     }
@@ -73,10 +66,6 @@ public class MyBed extends JavaPlugin {
             JarFile jar = new JarFile("plugins/MyBed.jar");
             ZipEntry entry = jar.getEntry(fileName);
             String destination = "plugins/MyBed/";
-            if (fileName.equals("Register.jar")) {
-                System.out.println("[MyBed] Moving Files... Please Reload Server");
-                destination = "lib/";
-            }
             File file = new File(destination.substring(0, destination.length()-1));
             if (!file.exists())
                 file.mkdir();
@@ -111,6 +100,7 @@ public class MyBed extends JavaPlugin {
         catch (Exception e) {
         }
         Register.economy = loadValue("Economy");
+        MyBedPlayerListener.maxHeals = Integer.parseInt(loadValue("MaxHealsPerNight"));
         PluginListener.useOP = Boolean.parseBoolean(loadValue("UseOP"));
         Register.insufficientFunds = loadValue("InsufficientFundsMessage").replaceAll("&", "§");
         MyBedPlayerListener.innMessage = loadValue("InnMessage").replaceAll("&", "§");
@@ -119,8 +109,10 @@ public class MyBed extends JavaPlugin {
     }
 
     /**
-     * Prints error for missing values
+     * Loads the given key and prints error if the key is missing
      *
+     * @param key The key to be loaded
+     * @return The String value of the loaded key
      */
     private String loadValue(String key) {
         if (!p.containsKey(key)) {
@@ -128,6 +120,19 @@ public class MyBed extends JavaPlugin {
             System.err.println("[MyBed] Please regenerate config file");
         }
         return p.getProperty(key);
+    }
+    
+    /**
+     * Registers events for the MyBed Plugin
+     *
+     */
+    private void registerEvents() {
+        MyBedBlockListener blockListener = new MyBedBlockListener();
+        pm.registerEvent(Event.Type.PLUGIN_ENABLE, new PluginListener(), Priority.Monitor, this);
+        pm.registerEvent(Type.WORLD_LOAD, new MyBedWorldListener(), Priority.Normal, this);
+        pm.registerEvent(Type.PLAYER_BED_ENTER, new MyBedPlayerListener(), Priority.Normal, this);
+        pm.registerEvent(Type.BLOCK_BREAK, blockListener, Priority.Normal, this);
+        pm.registerEvent(Type.SIGN_CHANGE, blockListener, Priority.Normal, this);
     }
 
     /**
@@ -140,10 +145,8 @@ public class MyBed extends JavaPlugin {
     public static boolean hasPermission(Player player, String type) {
         if (permissions != null)
             return permissions.has(player, "mybed."+type);
-        else
-            if (type.equals("own"))
-                return true;
-            else
-                return player.isOp();
+        else if (type.equals("own"))
+            return true;
+        return player.isOp();
     }
 }

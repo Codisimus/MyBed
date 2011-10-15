@@ -1,8 +1,8 @@
 
 package MyBed;
 
-import com.nijikokun.register.payment.Method;
-import com.nijikokun.register.payment.Method.MethodAccount;
+import com.codisimus.mybed.register.payment.Method;
+import com.codisimus.mybed.register.payment.Method.MethodAccount;
 import org.bukkit.entity.Player;
 
 /**
@@ -26,7 +26,7 @@ public class Register {
     protected static boolean charge(Player payer, String owner, double amount) {
         MethodAccount account = econ.getAccount(payer.getName());
         if (!account.hasEnough(amount)) {
-            payer.sendMessage(insufficientFunds.replaceAll("<price>", ""+format(amount)));
+            payer.sendMessage(insufficientFunds.replaceAll("<cost>", ""+format(amount)));
             return false;
         }
         account.subtract(amount);

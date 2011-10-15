@@ -31,17 +31,7 @@ class OwnedBed {
         }
         else {
             foot = block;
-            head = block.getRelative(bed.getFacing());
+            head = block.getRelative(bed.getFacing().getOppositeFace());
         }
-    }
-
-    /**
-     * Checks if the given Player is the owner of the bed
-     * 
-     * @param player the Player who will be checked for ownership
-     * @return true if the Player owns the bed
-     */
-    public boolean isOwner(String player) {
-        return owner.equals(player);
     }
 }

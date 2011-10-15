@@ -20,20 +20,25 @@ public class MyBedBlockListener extends BlockListener {
     public void onBlockBreak (BlockBreakEvent event) {
         Block block = event.getBlock();
         Player player = event.getPlayer();
-        try {
-            if (block.getType().equals(Material.SIGN))
-                block.equals(block.getRelative(BlockFace.DOWN));
-            if (block.getType().equals(Material.BED)) {
-                OwnedBed bed = SaveSystem.getBed(player, block);
-                if (bed.isOwner(player.getName()))
-                    SaveSystem.removeBed(bed);
+        if (block.getType().equals(Material.WALL_SIGN))
+            block = block.getRelative(BlockFace.DOWN);
+        if (block.getType().equals(Material.BED_BLOCK)) {
+            OwnedBed bed = SaveSystem.getBed(player, block);
+            if (bed == null)
+                return;
+            if (bed.owner.equalsIgnoreCase(player.getName()) || MyBed.hasPermission(player, "admin")) {
+                if (event.getBlock().getType().equals(Material.WALL_SIGN))
+                    player.sendMessage("Inn Destroyed!");
                 else {
-                    event.setCancelled(true);
-                    player.sendMessage("That bed does not belong to you!");
+                    System.out.println("Bed Removed");
+                    SaveSystem.removeBed(bed);
+                    SaveSystem.save();
                 }
             }
-        }
-        catch (Exception ex) {
+            else {
+                event.setCancelled(true);
+                player.sendMessage(MyBedPlayerListener.notOwnerMessage);
+            }
         }
     }
     
@@ -41,12 +46,19 @@ public class MyBedBlockListener extends BlockListener {
     public void onSignChange (SignChangeEvent event) {
         Player player = event.getPlayer();
         Block block = event.getBlock().getRelative(BlockFace.DOWN);
-        if (!block.getType().equals(Material.BED))
+        if (!block.getType().equals(Material.BED_BLOCK))
             return;
         OwnedBed bed = SaveSystem.getBed(player, block);
-        if (!bed.isOwner(player.getName()) || !MyBed.hasPermission(player, "inn")) {
-            event.setCancelled(true);
+        if (!MyBed.hasPermission(player, "inn")) {
+            event.getBlock().setTypeId(0);
             player.sendMessage(permissionMessage);
+            return;
         }
+        if (!bed.owner.equalsIgnoreCase(player.getName())) {
+            event.getBlock().setTypeId(0);
+            player.sendMessage(MyBedPlayerListener.notOwnerMessage);
+            return;
+        }
+        player.sendMessage("Inn Made!");
     }
 }
