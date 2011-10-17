@@ -1,6 +1,17 @@
 name: MyBed
-main: MyBed.MyBed
+main: com.codisimus.plugins.mybed.MyBed
 version: 0.3
 author: Codisimus
 website: www.codisimus.com
 description: Players cannot sleep in other Players' beds
+startup: postworld
+permissions:
+  mybed.own:
+    default: true
+    description: Needed to own a bed
+  mybed.inn:
+    default: true
+    description: Needed to create an Inn
+  mybed.admin:
+    default: op
+    description: Allows you to destroy another Player's Bed
