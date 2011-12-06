@@ -40,9 +40,9 @@ public class SaveSystem {
                 String[] split = line.split(";");
 
                 String owner = split[0];
-                int x = Integer.parseInt(split[2]);
-                int y = Integer.parseInt(split[3]);
-                int z = Integer.parseInt(split[4]);
+                int x = Integer.parseInt(split[1]);
+                int y = Integer.parseInt(split[2]);
+                int z = Integer.parseInt(split[3]);
                 Block block = world.getBlockAt(x, y, z);
 
                 if (block.getTypeId() == 26)

@@ -9,13 +9,11 @@ package com.codisimus.plugins.mybed;
 public class User {
     public String name;
     public int healed = 0;
-    
 
     /**
      * Constructs a new User
      * 
      * @param name The name of the Player
-     * @param safe The Block of the OwnedBed
      */
     public User(String name) {
         this.name = name;

@@ -64,30 +64,64 @@ public class blockListener extends BlockListener {
      */
     @Override
     public void onSignChange (SignChangeEvent event) {
-        //Return if the Block under the Sign is not a Bed
-        Block block = event.getBlock().getRelative(BlockFace.DOWN);
-        if (block.getTypeId() != 26)
+        //Return if the first line is not 'inn'
+        if (!event.getLine(0).equalsIgnoreCase("inn"))
             return;
-        
+
+        Block signBlock = event.getBlock();
         Player player = event.getPlayer();
-        OwnedBed bed = SaveSystem.getBed(player, block);
-        if (bed == null)
-            return;
-        
+
         //Cancel if the Player does not have permission to create Inns
         if (!MyBed.hasPermission(player, "inn")) {
-            event.getBlock().setTypeId(0);
+            event.setCancelled(true);
             player.sendMessage(permissionMessage);
             return;
         }
-        
+
+        //Verify the format of the sign
+        try {
+            Double.parseDouble(event.getLine(1).toLowerCase().replace("cost:", "").replaceAll(" ", ""));
+            Integer.parseInt(event.getLine(2).toLowerCase().replace("health:", "").replaceAll(" ", ""));
+        }
+        catch (Exception invalidFormat) {
+            event.setCancelled(true);
+            player.sendMessage("Invalid format of Inn sign, correct format is...");
+            player.sendMessage("      Inn");
+            player.sendMessage("    cost: 50");
+            player.sendMessage("   health: 10");
+            player.sendMessage("  Any text want");
+            return;
+        }
+
+        //Cancel the event if the Block under the Sign is not a Bed
+        Block bedBlock = signBlock.getRelative(BlockFace.DOWN);
+        if (bedBlock.getTypeId() != 26) {
+            event.setCancelled(true);
+            player.sendMessage("An Inn sign can only be placed above the head of a Bed");
+            return;
+        }
+
+        //Return if the Bed is not Owned
+        OwnedBed bed = SaveSystem.getBed(player, bedBlock);
+        if (bed == null) {
+            event.setCancelled(true);
+            return;
+        }
+
         //Cancel if the Player is not the Owner or an Admin
         if (!bed.owner.equalsIgnoreCase(player.getName()) && MyBed.hasPermission(player, "admin")) {
-            event.getBlock().setTypeId(0);
+            event.setCancelled(true);
             player.sendMessage(playerListener.notOwnerMessage);
             return;
         }
+
+        //Cancel the event if the Sign is not above the head of the Bed
+        if (!bed.head.equals(bedBlock)) {
+            event.setCancelled(true);
+            player.sendMessage("An Inn sign can only be placed above the head of a Bed");
+            return;
+        }
         
-        player.sendMessage("Inn Made!");
+        player.sendMessage("Inn Created!");
     }
 }

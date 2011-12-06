@@ -145,8 +145,8 @@ public class MyBed extends JavaPlugin {
      */
     public void registerEvents() {
         blockListener blockListener = new blockListener();
-        pm.registerEvent(Event.Type.PLUGIN_ENABLE, new pluginListener(), Priority.Monitor, this);
-        pm.registerEvent(Type.WORLD_LOAD, new worldListener(), Priority.Normal, this);
+        pm.registerEvent(Type.PLUGIN_ENABLE, new pluginListener(), Priority.Monitor, this);
+        pm.registerEvent(Type.WORLD_LOAD, new worldListener(), Priority.Monitor, this);
         pm.registerEvent(Type.PLAYER_BED_ENTER, new playerListener(), Priority.Normal, this);
         pm.registerEvent(Type.BLOCK_BREAK, blockListener, Priority.Normal, this);
         pm.registerEvent(Type.SIGN_CHANGE, blockListener, Priority.Normal, this);

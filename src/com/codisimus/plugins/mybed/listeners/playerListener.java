@@ -42,32 +42,47 @@ public class playerListener extends PlayerListener {
         if (bed.owner.equalsIgnoreCase(player.getName()))
             return;
         
-        //Check if the Bed is an Inn
-        try {
-            Sign sign = (Sign)bed.head.getRelative(BlockFace.UP).getState();
-            double cost = Double.parseDouble(sign.getLine(1).toLowerCase().replace("cost:", "").replaceAll(" ", ""));
-            int health = Integer.parseInt(sign.getLine(2).toLowerCase().replace("health:", "").replaceAll(" ", ""));
-            User user = getUser(player.getName());
-            
-            //Cancel the Event if the Player can not afford the Inn or maxed out their heals
-            if ((user.healed < maxHeals) || (maxHeals == -1)) {
-                if (Register.charge(player, bed.owner, cost)) {
-                    player.setHealth(player.getHealth()+health);
-                    user.healed++;
-                    
-                    player.sendMessage(innMessage.replaceAll("<cost>", Register.format(cost)).replaceAll("<health>", health+""));
-                    return;
-                }
-            }
-            else
-                player.sendMessage("You cannot sleep in an Inn again tonight");
-            
-            event.setCancelled(true);
-        }
-        catch (Exception notInn) {
-            event.setCancelled(true);
+        //Cancel the Event if there is not a Sign above the head of the Bed
+        Block signBlock = bed.head.getRelative(BlockFace.UP);
+        if (signBlock.getTypeId() != 323) {
             player.sendMessage(notOwnerMessage);
+            event.setCancelled(true);
+            return;
         }
+        
+        //Cancel the Event if the Bed is not an Inn
+        Sign sign = (Sign)signBlock.getState();
+        if (!sign.getLine(0).equalsIgnoreCase("inn")) {
+            player.sendMessage(notOwnerMessage);
+            event.setCancelled(true);
+            return;
+        }
+
+        double cost = Double.parseDouble(sign.getLine(1).toLowerCase().replace("cost:", "").replaceAll(" ", ""));
+        int health = Integer.parseInt(sign.getLine(2).toLowerCase().replace("health:", "").replaceAll(" ", ""));
+        User user = getUser(player.getName());
+
+        //Cancel the Event if the Player maxed out their heals
+        if ((user.healed >= maxHeals) && (maxHeals != -1)) {
+            player.sendMessage("You cannot sleep in an Inn again tonight");
+            event.setCancelled(true);
+            return;
+        }
+
+        //Cancel the Event if the Player can not afford the Inn
+        if (Register.charge(player, bed.owner, cost)) {
+            event.setCancelled(true);
+            return;
+        }
+
+        //Heal the Player
+        int newHealth = player.getHealth() + health;
+        if (newHealth > 20)
+            newHealth = 20;
+        player.setHealth(newHealth);
+        user.healed++;
+
+        player.sendMessage(innMessage.replaceAll("<cost>", Register.format(cost)).replaceAll("<health>", health+""));
     }
     
     /**
