@@ -1,10 +1,12 @@
 package com.codisimus.plugins.mybed.listeners;
 
+import com.codisimus.plugins.mybed.Econ;
 import com.codisimus.plugins.mybed.OwnedBed;
-import com.codisimus.plugins.mybed.Register;
 import com.codisimus.plugins.mybed.SaveSystem;
 import com.codisimus.plugins.mybed.User;
+import com.codisimus.plugins.mybed.listeners.BlockEventListener.Type;
 import java.util.LinkedList;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
@@ -17,7 +19,7 @@ import org.bukkit.event.player.PlayerListener;
  *
  * @author Codisimus
  */
-public class playerListener extends PlayerListener {
+public class PlayerEventListener extends PlayerListener {
     public static String notOwnerMessage;
     public static String innMessage;
     public static int maxHeals;
@@ -42,21 +44,31 @@ public class playerListener extends PlayerListener {
         if (bed.owner.equalsIgnoreCase(player.getName()))
             return;
         
+        
         //Cancel the Event if there is not a Sign above the head of the Bed
         Block signBlock = bed.head.getRelative(BlockFace.UP);
-        if (signBlock.getTypeId() != 323) {
+        if (signBlock.getType() != Material.WALL_SIGN) {
             player.sendMessage(notOwnerMessage);
             event.setCancelled(true);
             return;
         }
         
-        //Cancel the Event if the Bed is not an Inn
         Sign sign = (Sign)signBlock.getState();
-        if (!sign.getLine(0).equalsIgnoreCase("inn")) {
+        Type type;
+
+        //Cancel the Event if the Bed is not an Inn
+        try {
+            type = Type.valueOf(sign.getLine(0).toUpperCase());
+        }
+        catch (Exception notEnum) {
             player.sendMessage(notOwnerMessage);
             event.setCancelled(true);
             return;
         }
+
+        //Return if the Bed is a Guest Bed
+        if (type == Type.GUEST)
+            return;
 
         double cost = Double.parseDouble(sign.getLine(1).toLowerCase().replace("cost:", "").replaceAll(" ", ""));
         int health = Integer.parseInt(sign.getLine(2).toLowerCase().replace("health:", "").replaceAll(" ", ""));
@@ -70,7 +82,7 @@ public class playerListener extends PlayerListener {
         }
 
         //Cancel the Event if the Player can not afford the Inn
-        if (Register.charge(player, bed.owner, cost)) {
+        if (Econ.charge(player, bed.owner, cost)) {
             event.setCancelled(true);
             return;
         }
@@ -82,7 +94,7 @@ public class playerListener extends PlayerListener {
         player.setHealth(newHealth);
         user.healed++;
 
-        player.sendMessage(innMessage.replaceAll("<cost>", Register.format(cost)).replaceAll("<health>", health+""));
+        player.sendMessage(innMessage.replaceAll("<cost>", Econ.format(cost)).replaceAll("<health>", health+""));
     }
     
     /**

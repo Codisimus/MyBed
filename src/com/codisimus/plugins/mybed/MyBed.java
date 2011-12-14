@@ -1,9 +1,8 @@
 package com.codisimus.plugins.mybed;
 
-import com.codisimus.plugins.mybed.listeners.worldListener;
-import com.codisimus.plugins.mybed.listeners.playerListener;
-import com.codisimus.plugins.mybed.listeners.blockListener;
-import com.codisimus.plugins.mybed.listeners.pluginListener;
+import com.codisimus.plugins.mybed.listeners.WorldLoadListener;
+import com.codisimus.plugins.mybed.listeners.PlayerEventListener;
+import com.codisimus.plugins.mybed.listeners.BlockEventListener;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -14,15 +13,16 @@ import java.io.OutputStream;
 import java.util.Properties;
 import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
+import net.milkbowl.vault.economy.Economy;
+import net.milkbowl.vault.permission.Permission;
 import org.bukkit.Server;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
-import org.bukkit.event.Event;
 import org.bukkit.event.Event.Priority;
 import org.bukkit.event.Event.Type;
 import org.bukkit.plugin.PluginManager;
+import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
-import ru.tehkode.permissions.PermissionManager;
 
 /**
  * Loads Plugin and manages Permissions
@@ -31,7 +31,7 @@ import ru.tehkode.permissions.PermissionManager;
  */
 public class MyBed extends JavaPlugin {
     public static Server server;
-    public static PermissionManager permissions;
+    public static Permission permission;
     public static PluginManager pm;
     public Properties p;
 
@@ -47,21 +47,52 @@ public class MyBed extends JavaPlugin {
     public void onEnable() {
         server = getServer();
         pm = server.getPluginManager();
-        checkFiles();
+        
+        //Load Beds Data
         for (World loadedWorld: server.getWorlds())
             SaveSystem.load(loadedWorld);
-        loadConfig();
-        registerEvents();
-        System.out.println("MyBed "+this.getDescription().getVersion()+" is enabled!");
-    }
+        
+        //Load Config settings
+        p = new Properties();
+        try {
+            //Copy the file from the jar if it is missing
+            if (!new File("plugins/MyBed/config.properties").exists())
+                moveFile("config.properties");
+            
+            p.load(new FileInputStream("plugins/MyBed/config.properties"));
+            
+            PlayerEventListener.maxHeals = Integer.parseInt(loadValue("MaxHealsPerNight"));
 
-    /**
-     * Makes sure all needed files exist
-     *
-     */
-    public void checkFiles() {
-        if (!new File("plugins/MyBed/config.properties").exists())
-            moveFile("config.properties");
+            Econ.insufficientFunds = format(loadValue("InsufficientFundsMessage"));
+            PlayerEventListener.innMessage = format(loadValue("InnMessage"));
+            PlayerEventListener.notOwnerMessage = format(loadValue("NotOwnerMessage"));
+            BlockEventListener.permissionMessage = format(loadValue("PermissionMessage"));
+        }
+        catch (Exception missingProp) {
+            System.err.println("Failed to load MyBed "+this.getDescription().getVersion());
+            missingProp.printStackTrace();
+        }
+        
+        //Find Permissions
+        RegisteredServiceProvider<Permission> permissionProvider =
+                getServer().getServicesManager().getRegistration(net.milkbowl.vault.permission.Permission.class);
+        if (permissionProvider != null)
+            permission = permissionProvider.getProvider();
+        
+        //Find Economy
+        RegisteredServiceProvider<Economy> economyProvider =
+                getServer().getServicesManager().getRegistration(net.milkbowl.vault.economy.Economy.class);
+        if (economyProvider != null)
+            Econ.economy = economyProvider.getProvider();
+        
+        //Register Events
+        BlockEventListener blockListener = new BlockEventListener();
+        pm.registerEvent(Type.WORLD_LOAD, new WorldLoadListener(), Priority.Monitor, this);
+        pm.registerEvent(Type.PLAYER_BED_ENTER, new PlayerEventListener(), Priority.Normal, this);
+        pm.registerEvent(Type.BLOCK_BREAK, blockListener, Priority.Normal, this);
+        pm.registerEvent(Type.SIGN_CHANGE, blockListener, Priority.Normal, this);
+        
+        System.out.println("MyBed "+this.getDescription().getVersion()+" is enabled!");
     }
 
     /**
@@ -103,27 +134,6 @@ public class MyBed extends JavaPlugin {
     }
 
     /**
-     * Loads settings from the config.properties file
-     *
-     */
-    public void loadConfig() {
-        p = new Properties();
-        try {
-            p.load(new FileInputStream("plugins/MyBed/config.properties"));
-        }
-        catch (Exception e) {
-        }
-        Register.economy = loadValue("Economy");
-        pluginListener.useBP = Boolean.parseBoolean(loadValue("UseBukkitPermissions"));
-        playerListener.maxHeals = Integer.parseInt(loadValue("MaxHealsPerNight"));
-        
-        Register.insufficientFunds = format(loadValue("InsufficientFundsMessage"));
-        playerListener.innMessage = format(loadValue("InnMessage"));
-        playerListener.notOwnerMessage = format(loadValue("NotOwnerMessage"));
-        blockListener.permissionMessage = format(loadValue("PermissionMessage"));
-    }
-
-    /**
      * Loads the given key and prints an error if the key is missing
      *
      * @param key The key to be loaded
@@ -138,34 +148,16 @@ public class MyBed extends JavaPlugin {
         
         return p.getProperty(key);
     }
-    
-    /**
-     * Registers events for the MyBed Plugin
-     *
-     */
-    public void registerEvents() {
-        blockListener blockListener = new blockListener();
-        pm.registerEvent(Type.PLUGIN_ENABLE, new pluginListener(), Priority.Monitor, this);
-        pm.registerEvent(Type.WORLD_LOAD, new worldListener(), Priority.Monitor, this);
-        pm.registerEvent(Type.PLAYER_BED_ENTER, new playerListener(), Priority.Normal, this);
-        pm.registerEvent(Type.BLOCK_BREAK, blockListener, Priority.Normal, this);
-        pm.registerEvent(Type.SIGN_CHANGE, blockListener, Priority.Normal, this);
-    }
 
     /**
      * Returns boolean value of whether the given player has the specific permission
      *
      * @param player The Player who is being checked for permission
-     * @param type The String of the permission, ex. inn
+     * @param node The String of the permission, ex. inn
      * @return true if the given player has the specific permission
      */
-    public static boolean hasPermission(Player player, String type) {
-        //Check if a Permission Plugin is present
-        if (permissions != null)
-            return permissions.has(player, "mybed."+type);
-        
-        //Return Bukkit Permission value
-        return player.hasPermission("mybed."+type);
+    public static boolean hasPermission(Player player, String node) {
+        return permission.has(player, "mybed."+node);
     }
     
     /**

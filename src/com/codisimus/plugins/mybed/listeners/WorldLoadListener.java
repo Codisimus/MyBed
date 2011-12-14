@@ -9,7 +9,7 @@ import org.bukkit.event.world.WorldLoadEvent;
  *
  * @author Codisimus
  */
-public class worldListener extends WorldListener{
+public class WorldLoadListener extends WorldListener{
 
     /**
      * Loads MyBed data for the loaded World
