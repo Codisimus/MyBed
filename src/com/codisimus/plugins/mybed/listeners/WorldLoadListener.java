@@ -1,6 +1,6 @@
 package com.codisimus.plugins.mybed.listeners;
 
-import com.codisimus.plugins.mybed.SaveSystem;
+import com.codisimus.plugins.mybed.MyBed;
 import org.bukkit.event.world.WorldListener;
 import org.bukkit.event.world.WorldLoadEvent;
 
@@ -18,7 +18,7 @@ public class WorldLoadListener extends WorldListener{
      */
     @Override
     public void onWorldLoad (WorldLoadEvent event) {
-        SaveSystem.load(event.getWorld());
+        MyBed.loadData(event.getWorld());
     }
 }
 

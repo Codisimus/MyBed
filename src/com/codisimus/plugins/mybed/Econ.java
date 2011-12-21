@@ -18,9 +18,10 @@ public class Econ {
      * @param player The name of the Player to be charged
      * @param source The Player/Bank that will receive the money
      * @param amount The amount that will be charged
+     * @param server True if the money is going to the Server
      * @return True if the transaction was successful
      */
-    public static boolean charge(Player player, String owner, double amount) {
+    public static boolean charge(Player player, String owner, double amount, boolean server) {
         String name = player.getName();
         
         //Cancel if the Player cannot afford the transaction
@@ -31,8 +32,9 @@ public class Econ {
         
         economy.withdrawPlayer(name, amount);
         
-        //Send money to the Owner
-        economy.depositPlayer(owner, amount);
+        //Send money to the Owner if it is not a Server Inn
+        if (!server)
+            economy.depositPlayer(owner, amount);
         
         return true;
     }

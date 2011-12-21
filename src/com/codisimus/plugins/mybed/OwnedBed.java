@@ -29,11 +29,11 @@ public class OwnedBed {
         //Set the Blocks of the Bed
         if (bed.isHeadOfBed()) {
             head = block;
-            foot = block.getRelative(bed.getFacing());
+            foot = block.getRelative(bed.getFacing().getOppositeFace());
         }
         else {
             foot = block;
-            head = block.getRelative(bed.getFacing().getOppositeFace());
+            head = block.getRelative(bed.getFacing());
         }
     }
 }
