@@ -56,10 +56,6 @@ public class MyBed extends JavaPlugin {
         server = getServer();
         pm = server.getPluginManager();
         
-        //Load Beds Data
-        for (World loadedWorld: server.getWorlds())
-            loadData(loadedWorld);
-        
         //Load Config settings
         p = new Properties();
         try {
@@ -83,6 +79,10 @@ public class MyBed extends JavaPlugin {
             System.err.println("Failed to load MyBed "+this.getDescription().getVersion());
             missingProp.printStackTrace();
         }
+        
+        //Load Beds Data
+        for (World loadedWorld: server.getWorlds())
+            loadData(loadedWorld);
         
         //Find Permissions
         RegisteredServiceProvider<Permission> permissionProvider =

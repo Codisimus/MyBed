@@ -1,6 +1,6 @@
 name: MyBed
 main: com.codisimus.plugins.mybed.MyBed
-version: 0.7.0
+version: 0.7.1
 author: Codisimus
 website: www.codisimus.com
 description: Players cannot sleep in other Players' beds
